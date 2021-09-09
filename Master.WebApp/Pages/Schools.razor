@@ -1,0 +1,98 @@
+﻿@page "/schools"
+
+@using Master.Domain
+@inject Master.WebApp.Services.ISchoolService schoolService
+@inject MudBlazor.ISnackbar snackBar
+
+<MudCard Elevation="25">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Add / Edit Schools</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTextField @bind-Value="school.Name" Label="Name" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="school.ShortName" Label="Short Name" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="school.Country" Label="Country" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="school.State" Label="State" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="school.Ranking" Label="Ranking" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <br />
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="async _ => await SaveAsync()">Apply Change</MudButton>
+    </MudCardContent>
+</MudCard>
+<br />
+<MudTable Elevation="25" Items="schools" Filter="new Func<School, bool>(Search)" @bind-school="school">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Schools</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString" Placeholder="Search for Schools..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Short Name</MudTh>
+        <MudTh>Country</MudTh>
+        <MudTh>State</MudTh>
+        <MudTh>Ranking</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Short Name">@context.ShortName</MudTd>
+        <MudTd DataLabel="Country">@context.Country</MudTd>
+        <MudTd DataLabel="State">@context.State</MudTd>
+        <MudTd DataLabel="Ranking">@context.Ranking</MudTd>
+        <MudTd DataLabel="">
+            <MudFab @onclick="@(()=>Edit(@context.Id))" Color="Color.Primary" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" IconSize="Size.Small" />
+            <MudFab @onclick="@(async ()=>await DeleteAsync(@context.Id))" Color="Color.Secondary" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code{
+    private string searchString = "";
+    private School school = new School();
+    private List<School> schools = new List<School>();
+    protected override async Task OnInitializedAsync()
+    {
+        await GetSchoolsAsync();
+    }
+    private async Task<List<School>> GetSchoolsAsync()
+    {
+        schools = await schoolService.GetAllAsync();
+        return schools;
+    }
+    private bool Search(School school)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (school.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+            || school.ShortName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        return false;
+    }
+    private async Task SaveAsync()
+    {
+        try
+        {
+            await schoolService.SaveAsync(school);
+            school = new School();
+            snackBar.Add("School Saved.", Severity.Success);
+            await GetSchoolsAsync();
+        }
+        catch(Exception e)
+        {
+            snackBar.Add(e.Message, Severity.Warning);
+        }
+    }
+    private void Edit(int id)
+    {
+        school = schools.FirstOrDefault(s => s.Id == id);
+    }
+    private async Task DeleteAsync(int id)
+    {
+        await schoolService.DeleteAsync(id);
+        snackBar.Add("School Deleted.", Severity.Success);
+        await GetSchoolsAsync();
+    }
+}

@@ -1,0 +1,134 @@
+﻿@page "/programs"
+
+@using Master.Domain
+@inject Master.WebApp.Services.IProgramService programService
+@inject Master.WebApp.Services.ISchoolService schoolService
+@inject MudBlazor.ISnackbar snackBar
+
+<MudCard Elevation="25">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Add / Edit Programs</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudAutocomplete T="int" Label="School" @bind-Value="@program.SchoolId" SearchFunc="@SearchSchool" ToStringFunc="id => GetSchoolName(id)"></MudAutocomplete>
+        <MudTextField @bind-Value="program.Name" Label="Name" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="program.ShortName" Label="Short Name" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="program.Department" Label="Department" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="program.Url" Label="Url" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <br />
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="async _ => await SaveAsync()">Apply Change</MudButton>
+    </MudCardContent>
+</MudCard>
+<br />
+<MudTable Elevation="25" Items="programs" Filter="new Func<Domain.Program, bool>(Search)" @bind-school="program">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Programs</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString" Placeholder="Search for Programs..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <ColGroup>
+        <col />
+        <col />
+        <col />
+        <col style="width: 150px;" />
+        <col />
+    </ColGroup>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<Domain.Program, object>(x=> schools.Single(s => s.Id == x.SchoolId).Name)" InitialDirection="SortDirection.Ascending">Short Name</MudTableSortLabel></MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Department</MudTh>
+        <MudTh>Url</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Short Name">@($"{schools.FirstOrDefault(x => x.Id == context.SchoolId).ShortName}-{context.ShortName}")</MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Department">@context.Department</MudTd>
+        <MudTd DataLabel="Url"><MudLink Href="@context.Url">@context.Url</MudLink></MudTd>
+        <MudTd DataLabel="">
+            <MudFab @onclick="@(()=>Edit(@context.Id))" Color="Color.Primary" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" IconSize="Size.Small" />
+            <MudFab @onclick="@(async ()=>await DeleteAsync(@context.Id))" Color="Color.Secondary" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code{
+    private string searchString = "";
+    private Domain.Program program = new Domain.Program();
+    private List<Domain.Program> programs = new List<Domain.Program>();
+    private List<School> schools = new List<School>();
+    protected override async Task OnInitializedAsync()
+    {
+        schools = await schoolService.GetAllAsync();
+        await GetPrograms();
+    }
+    private async Task<List<Domain.Program>> GetPrograms()
+    {
+        programs = await programService.GetAllAsync();
+        return programs;
+    }
+    private bool Search(Domain.Program program)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (program.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+            || program.ShortName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        return false;
+    }
+    private async Task SaveAsync()
+    {
+        try
+        {
+            await programService.SaveAsync(program);
+            program = new Domain.Program();
+            snackBar.Add("Program Saved", Severity.Success);
+            await GetPrograms();
+        }
+        catch(Exception e)
+        {
+            snackBar.Add(e.Message, Severity.Warning);
+        }
+    }
+    private void Edit(int id)
+    {
+        program = programs.FirstOrDefault(s => s.Id == id);
+    }
+    private async Task DeleteAsync(int id)
+    {
+        await programService.DeleteAsync(id);
+        snackBar.Add("Program Deleted.", Severity.Success);
+        await GetPrograms();
+    }
+
+    private string GetSchoolName(int schoolId)
+    {
+        var school = schools.FirstOrDefault(x => x.Id == schoolId);
+        if(school is null)
+        {
+            return "";
+        }
+        else
+        {
+            return school.Name;
+        }
+    }
+
+    private async Task<IEnumerable<int>> SearchSchool(string value)
+    {
+        return await Task.Run(() =>
+        {
+            // if text is null or empty, show complete list
+            if (string.IsNullOrEmpty(value))
+                return schools.Select(x => x.Id);
+            return schools.Where(
+                x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase) ||
+                x.ShortName.Contains(value, StringComparison.InvariantCultureIgnoreCase)
+            ).Select(x => x.Id);
+        });
+
+    }
+}

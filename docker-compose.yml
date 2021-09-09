@@ -1,0 +1,30 @@
+version: '3.4'
+
+services:
+  master.webapp:
+    image: ${DOCKER_REGISTRY-}masterwebapp
+    build:
+      context: .
+      dockerfile: Master.WebApp/Dockerfile
+    container_name: master.webApp
+    networks:
+      - master
+  master.database:
+    image: mysql:latest
+    ports:
+        - "6000:3306"
+    environment:
+        - MYSQL_ROOT_PASSWORD=1234
+        - MYSQL_DATABASE=Production
+    container_name: master.database
+    networks:
+        - master
+    volumes:
+        - master-volume:/var/lib/mysql
+
+networks:
+  master:
+    name: master
+
+volumes:
+    master-volume:
