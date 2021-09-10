@@ -17,5 +17,6 @@ namespace Master.Domain
         public int WorkExp { get; set; }
         public bool CsCourse { get; set; }
         public string Tags { get; set; }
+        public string Link { get; set; }
     }
 }

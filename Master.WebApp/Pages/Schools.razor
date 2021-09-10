@@ -28,7 +28,7 @@
         <MudTextField @bind-Value="searchString" Placeholder="Search for Schools..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
     </ToolBarContent>
     <HeaderContent>
-        <MudTh>Name</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<Domain.School, object>(x=> x.Name)" InitialDirection="SortDirection.Ascending">Name</MudTableSortLabel></MudTh>
         <MudTh>Short Name</MudTh>
         <MudTh>Country</MudTh>
         <MudTh>State</MudTh>

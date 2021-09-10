@@ -15,5 +15,24 @@ namespace Master.DataAccess
         public DbSet<Program> Programs { get; set; }
         public DbSet<School> Schools { get; set; }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<School>()
+                .HasIndex(x => x.Name)
+                .IsUnique();
+
+            modelBuilder.Entity<Program>()
+                .HasIndex(x => new { x.SchoolId, x.Name})
+                .IsUnique();
+
+            modelBuilder.Entity<Person>()
+                .HasIndex(x => x.Link)
+                .IsUnique();
+
+            modelBuilder.Entity<Admission>()
+                .HasIndex(x => new { x.PersonId, x.ProgramId })
+                .IsUnique();
+        }
+
     }
 }
