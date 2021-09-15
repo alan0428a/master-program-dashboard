@@ -16,7 +16,7 @@ namespace Master.WebApp.Services
         }
         public async Task DeleteAsync(int id)
         {
-            var data = await _context.Programs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+            var data = await _context.Programs.FirstOrDefaultAsync(x => x.Id == id);
             if (data is not null)
             {
                 _context.Programs.Remove(data);
@@ -26,12 +26,12 @@ namespace Master.WebApp.Services
 
         public async Task<Domain.Program> GetByIdAsync(int id)
         {
-            return await _context.Programs.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id);
+            return await _context.Programs.SingleOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<List<Domain.Program>> GetAllAsync()
         {
-            return await _context.Programs.AsNoTracking().ToListAsync();
+            return await _context.Programs.ToListAsync();
         }
 
         public async Task SaveAsync(Domain.Program data)

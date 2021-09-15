@@ -17,7 +17,7 @@ namespace Master.WebApp.Services
         }
         public async Task DeleteAsync(int id)
         {
-            var school = await _context.Schools.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+            var school = await _context.Schools.FirstOrDefaultAsync(x => x.Id == id);
             if(school is not null)
             {
                 _context.Schools.Remove(school);
@@ -27,12 +27,12 @@ namespace Master.WebApp.Services
 
         public async Task<School> GetByIdAsync(int id)
         {
-            return await _context.Schools.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id);
+            return await _context.Schools.SingleOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<List<School>> GetAllAsync()
         {
-            return await _context.Schools.AsNoTracking().ToListAsync();
+            return await _context.Schools.ToListAsync();
         }
 
         public async Task SaveAsync(School school)
