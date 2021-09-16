@@ -22,7 +22,7 @@ namespace Master.DataAccess
                 .IsUnique();
 
             modelBuilder.Entity<Program>()
-                .HasIndex(x => new { x.SchoolId, x.Name})
+                .HasIndex(x => new { x.SchoolId, x.Department, x.Name})
                 .IsUnique();
 
             modelBuilder.Entity<Person>()
