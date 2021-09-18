@@ -26,4 +26,8 @@
     <ProjectReference Include="..\Master.Domain\Master.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="wwwroot\scripts\functions.js" />
+  </ItemGroup>
+
 </Project>

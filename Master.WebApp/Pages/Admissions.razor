@@ -1,0 +1,305 @@
+@page "/admissions"
+
+@using Master.Domain
+@inject Master.WebApp.Services.IProgramService programService
+@inject Master.WebApp.Services.ISchoolService schoolService
+@inject Master.WebApp.Services.IAdmissionService admissionService
+@inject Master.WebApp.Services.IPersonService personService
+@inject MudBlazor.ISnackbar snackBar
+@inject IJSRuntime jsRuntTime
+
+<MudCard Elevation="25">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Add / Edit Person & Admissions</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudField Label="Person" Variant="Variant.Outlined" Class="pb-2">
+                <MudTextField @bind-Value="person.School" Label="School" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+                <MudTextField @bind-Value="person.Department" Label="Department" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+                <MudGrid>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudNumericField @bind-Value="person.Gpa" Label="GPA" Variant="Variant.Text" Margin="Margin.Normal" Min="0.0" Max="4.0"></MudNumericField>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudNumericField @bind-Value="person.Toefl" Label="TOEFL" Variant="Variant.Text" Margin="Margin.Normal" Min="0" Max="120"></MudNumericField>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudNumericField @bind-Value="person.GreVerbal" Label="GRE(V)" Variant="Variant.Text" Margin="Margin.Normal" Min="0" Max="170"></MudNumericField>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudNumericField @bind-Value="person.GreQuant" Label="GRE(Q)" Variant="Variant.Text" Margin="Margin.Normal" Min="0" Max="170"></MudNumericField>
+                    </MudItem>
+                </MudGrid>
+                <MudGrid>
+                    <MudItem md="10">
+                        <MudNumericField @bind-Value="person.WorkExp" Label="WorkExp" Variant="Variant.Text" Margin="Margin.Normal" Min="0"></MudNumericField>
+                    </MudItem>
+                    <MudItem md="2" Class="align-self-end">
+                        <MudSwitch @bind-Checked="@person.CsCourse" Label="CsCourse" Color="Color.Success" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudTextField @bind-Value="person.Tags" Label="Tags" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+                <MudTextField @bind-Value="person.Link" Label="Link" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+            </MudField>
+            <MudField Label="Admission" Variant="Variant.Outlined">
+                <MudGrid>
+                    <MudItem md="5">
+                        <MudAutocomplete T="int" Label="School" @bind-Value="@admissionEditData.SchoolId" SearchFunc="@SearchSchool" ToStringFunc="id => GetSchoolName(id)"></MudAutocomplete>
+                    </MudItem>
+                    <MudItem md="5">
+                        <MudAutocomplete T="int" Label="Program" @bind-Value="@admissionEditData.ProgramId" SearchFunc="@SearchProgram" ToStringFunc="id => GetProgramName(id)"></MudAutocomplete>
+                    </MudItem>
+                    <MudItem Class="align-self-center" md="2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAdmissionData">Add</MudButton>
+                    </MudItem>
+                    <MudItem xs="12" md="12">
+                        @if (admissionEditList != null && admissionEditList.Count != 0)
+                        {
+                            <MudText Class="mb-n3" Typo="Typo.body2">
+                                Admissions:
+                                @foreach (var admission in admissionEditList)
+                                {
+                                    <MudChip Color="Color.Default" OnClose="AdmissionDeleted" Tag="admission">@GetAdmissionAbbrev(admission.SchoolId, admission.ProgramId)</MudChip>
+                                }
+                            </MudText>
+                        }
+                    </MudItem>
+                </MudGrid>
+
+            </MudField>
+            <br />
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="async _ => await SaveAsync()">Apply Change</MudButton>
+    </MudCardContent>
+</MudCard>
+<br />
+<MudTable Elevation="25" Items="persons" @bind-person="person">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Persons & Admissions</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString" Placeholder="Search for Admissions..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <ColGroup>
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col />
+        <col style="width: 400px;" />
+        <col />
+    </ColGroup>
+    <HeaderContent>
+        <MudTh>Id</MudTh>
+        <MudTh>School</MudTh>
+        <MudTh>Department</MudTh>
+        <MudTh>Gpa</MudTh>
+        <MudTh>Toefl</MudTh>
+        <MudTh>Gre</MudTh>
+        <MudTh>WorkExp</MudTh>
+        <MudTh>CsCourse</MudTh>
+        <MudTh>Tags</MudTh>
+        <MudTh>Admissions</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Id"><MudLink Href="@context.Link">@context.Id</MudLink></MudTd>
+        <MudTd DataLabel="School">@context.School</MudTd>
+        <MudTd DataLabel="Department">@context.Department</MudTd>
+        <MudTd DataLabel="GPA">@context.Gpa</MudTd>
+        <MudTd DataLabel="TOEFL">@context.Toefl</MudTd>
+        <MudTd DataLabel="GRE">@($"{context.GreVerbal + context.GreQuant}(V{context.GreVerbal}Q{context.GreQuant})")</MudTd>
+        <MudTd DataLabel="WorkExp">@context.WorkExp</MudTd>
+        <MudTd DataLabel="CsCourse">@context.CsCourse</MudTd>
+        <MudTd DataLabel="Tags">
+            @if(!string.IsNullOrEmpty(context.Tags))
+            {
+                foreach (var tag in context.Tags.Split(','))
+                {
+                    <MudChip Color="Color.Info">@tag</MudChip>
+                }
+            }
+        </MudTd>
+        <MudTd DataLabel="Admissions">
+            @foreach (var admission in admissions.Where(x => x.PersonId == context.Id).ToList())
+            {
+                <MudChip Color="Color.Default" Tag="admission">@GetAdmissionAbbrev(programs.Where(x => x.Id == admission.ProgramId).FirstOrDefault().SchoolId, admission.ProgramId)</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="">
+            <MudFab @onclick="@(()=>Edit(@context.Id))" Color="Color.Primary" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" IconSize="Size.Small" />
+            <MudFab @onclick="@(async ()=>await DeleteAsync(@context.Id))" Color="Color.Secondary" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code{
+
+    private class AdmissionData
+    {
+        public int SchoolId{get;set;}
+        public int ProgramId{get;set;}
+    }
+    private string searchString = "";
+    private bool dirty = false;
+
+    private List<Person> persons = new ();
+    private List<School> schools = new ();
+    private List<Domain.Program> programs = new ();
+    private List<Admission> admissions = new();
+
+    private Person person = new();
+    private AdmissionData admissionEditData = new ();
+    private List<AdmissionData> admissionEditList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        persons = await personService.GetAllAsync();
+        schools = await schoolService.GetAllAsync();
+        programs = await programService.GetAllAsync();
+        admissions = await admissionService.GetAllAsync();
+    }
+    private async Task SaveAsync()
+    {
+        try
+        {
+            var newPerson = await personService.SaveAsync(person);
+            if(dirty)
+            {
+                await admissionService.SaveAsync(admissionEditList.Select(x => new Admission { PersonId = newPerson.Id, ProgramId = x.ProgramId}).ToList());
+            }
+
+            person = new Person();
+            admissionEditList = new List<AdmissionData>();
+            dirty = false;
+            snackBar.Add("Person Saved", Severity.Success);
+            persons = await personService.GetAllAsync();
+            admissions = await admissionService.GetAllAsync();
+
+        }
+        catch(Exception e)
+        {
+            snackBar.Add(e.Message, Severity.Warning);
+        }
+    }
+
+    private void AddAdmissionData()
+    {
+        try
+        {
+            dirty = true;
+            admissionEditList.Add(admissionEditData);
+            admissionEditData = new AdmissionData();
+        }
+        catch(Exception e)
+        {
+            snackBar.Add(e.Message, Severity.Warning);
+        }
+    }
+    private async Task Edit(int id)
+    {
+        person = persons.FirstOrDefault(s => s.Id == id);
+        var personAdmissions = await admissionService.GetByPersonIdAsync(id);
+        admissionEditList = personAdmissions.Select(x => new AdmissionData { ProgramId = x.ProgramId, SchoolId = programs.FirstOrDefault(p => p.Id == x.ProgramId).SchoolId }).ToList();
+        await jsRuntTime.InvokeVoidAsync("ScrollTop");
+    }
+
+
+    private async Task DeleteAsync(int id)
+    {
+        await personService.DeleteAsync(id);
+        await admissionService.DeleteByPersonIdAsync(id);
+        snackBar.Add("Person Deleted.", Severity.Success);
+        persons = await personService.GetAllAsync();
+    }
+
+    private string GetSchoolName(int schoolId)
+    {
+        var school = schools.FirstOrDefault(x => x.Id == schoolId);
+        if(school is null)
+        {
+            return "";
+        }
+        else
+        {
+            return school.Name;
+        }
+    }
+
+    void AdmissionDeleted(MudChip chip) {
+        // react to chip closed
+        var tag = chip.Tag as AdmissionData;
+        var ad = admissionEditList.FirstOrDefault(x => x.SchoolId == tag.SchoolId && x.ProgramId == tag.ProgramId);
+        if(ad != null)
+        {
+            admissionEditList.Remove(ad);
+        }
+    }
+
+    private async Task<IEnumerable<int>> SearchSchool(string value)
+    {
+        return await Task.Run(() =>
+        {
+            // if text is null or empty, show complete list
+            if (string.IsNullOrEmpty(value))
+                return schools.Select(x => x.Id);
+            return schools.Where(
+                x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase) ||
+                x.ShortName.Contains(value, StringComparison.InvariantCultureIgnoreCase)
+            ).Select(x => x.Id);
+        });
+
+    }
+
+    private string GetProgramName(int id)
+    {
+        var program = programs.FirstOrDefault(x => x.Id == id);
+        if(program is null)
+        {
+            return "";
+        }
+        else
+        {
+            return $"({program.ShortName}){program.Name}";
+        }
+    }
+
+    private async Task<IEnumerable<int>> SearchProgram(string value)
+    {
+        return await Task.Run(() =>
+        {
+            // if text is null or empty, show complete list
+            if (string.IsNullOrEmpty(value))
+            {
+
+                return programs.Where(x => x.SchoolId == admissionEditData.SchoolId).Select(x => x.Id);
+
+            }
+            return programs.Where(
+                x => x.SchoolId == admissionEditData.SchoolId &&
+                (x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase) ||
+                x.ShortName.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            ).Select(x => x.Id);
+        });
+
+    }
+
+    private string GetAdmissionAbbrev(int schoolId, int programId)
+    {
+        var school = schools.FirstOrDefault(x => x.Id == schoolId);
+        var program = programs.FirstOrDefault(x => x.Id == programId);
+        if(school != null && program != null)
+        {
+            return $"{school.ShortName}-{program.ShortName}";
+        }
+        else
+        {
+            return "UNKNOWN";
+        }
+    }
+}

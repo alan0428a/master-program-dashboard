@@ -13,7 +13,8 @@ namespace Master.Domain
         public string Department { get; set; }
         public double Gpa { get; set; }
         public int Toefl { get; set; }
-        public int Gre { get; set; }
+        public int GreVerbal { get; set; }
+        public int GreQuant { get; set; }
         public int WorkExp { get; set; }
         public bool CsCourse { get; set; }
         public string Tags { get; set; }
