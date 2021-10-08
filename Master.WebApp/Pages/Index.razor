@@ -1,7 +1,330 @@
 ﻿@page "/"
 
-<h1>Hello, world!</h1>
+@using Master.Domain
+@using System.ComponentModel.DataAnnotations
+@using Blazorise.Charts;
+@using System.Text.Json;
+@using System.Text.Json.Serialization;
+@inject Master.WebApp.Services.IProgramService programService
+@inject Master.WebApp.Services.ISchoolService schoolService
+@inject Master.WebApp.Services.IAdmissionService admissionService
+@inject Master.WebApp.Services.IPersonService personService
 
-Welcome to your new app.
+<div class="ml-auto mr-auto py-4" style="max-width: 600px;">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">Query statistics by school/program</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudForm @ref="model" @bind-IsValid="@success">
+                <MudAutocomplete T="int" Label="School" Required="true" RequiredError="Please select school"
+                                 Validation="@(new Func<int, string>(CheckSelection))"
+                                 @bind-Value="@schoolId" SearchFunc="@SearchSchool" ToStringFunc="id => GetSchoolName(id)"></MudAutocomplete>
+                <MudAutocomplete T="int" Label="Program"
+                                 @bind-Value="@programId" SearchFunc="@SearchProgram" ToStringFunc="id => GetProgramName(id)"></MudAutocomplete>
+            </MudForm>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!success)" Class="ml-auto" OnClick="Query">Query</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(!success)" Class="ml-2" OnClick="Clear">Clear</MudButton>
+        </MudCardActions>
+    </MudCard>
+</div>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+<section class="py-4">
+    <MudGrid>
+        <MudItem sm="12" lg="6">
+            <div class="card shadow">
+                <div class="card-header">
+                    Colleges for Admissions
+                </div>
+                <div class="card-body">
+                    <BarChart @ref="schoolChart" Type="Blazorise.Charts.ChartType.HorizontalBar" TItem="int" OptionsJsonString="@GetChartOption()" />
+                </div>
+            </div>
+        </MudItem>
+        <MudItem lg="6">
+            <div class="card shadow">
+                <div class="card-header">
+                    GPA Distributions
+                </div>
+                <div class="card-body">
+                    <BarChart @ref="gpaChart" Type="Blazorise.Charts.ChartType.Bar" TItem="int" OptionsJsonString="@GetChartOption()" />
+                </div>
+            </div>
+        </MudItem>
+    </MudGrid>
+</section>
+
+<section class="py-4">
+    <MudTable Class="shadow" Elevation="25" Items="results">
+        <ColGroup>
+            <col />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col />
+            <col style="width: 400px;" />
+        </ColGroup>
+        <HeaderContent>
+            <MudTh>Id</MudTh>
+            <MudTh>School</MudTh>
+            <MudTh>Department</MudTh>
+            <MudTh>Gpa</MudTh>
+            <MudTh>Toefl</MudTh>
+            <MudTh>Gre</MudTh>
+            <MudTh>WorkExp</MudTh>
+            <MudTh>CsCourse</MudTh>
+            <MudTh>Tags</MudTh>
+            <MudTh>Admissions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Id"><MudLink Href="@context.Link">@context.Id</MudLink></MudTd>
+            <MudTd DataLabel="School">@context.School</MudTd>
+            <MudTd DataLabel="Department">@context.Department</MudTd>
+            <MudTd DataLabel="GPA">@context.Gpa</MudTd>
+            <MudTd DataLabel="TOEFL">@context.Toefl</MudTd>
+            <MudTd DataLabel="GRE">@($"{context.GreVerbal + context.GreQuant}(V{context.GreVerbal}Q{context.GreQuant})")</MudTd>
+            <MudTd DataLabel="WorkExp">@context.WorkExp</MudTd>
+            <MudTd DataLabel="CsCourse">@context.CsCourse</MudTd>
+            <MudTd DataLabel="Tags">
+                @if (!string.IsNullOrEmpty(context.Tags))
+                {
+                    foreach (var tag in context.Tags.Split(','))
+                    {
+                        <MudChip Color="Color.Info">@tag</MudChip>
+                    }
+                }
+            </MudTd>
+            <MudTd DataLabel="Admissions">
+                @foreach (var admission in admissions.Where(x => x.PersonId == context.Id).ToList())
+                {
+                    <MudChip Color="Color.Default" Tag="admission">@GetAdmissionAbbrev(programs.Where(x => x.Id == admission.ProgramId).FirstOrDefault().SchoolId, admission.ProgramId)</MudChip>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</section>
+
+@code {
+
+    MudForm model = new MudForm();
+    bool success;
+    private List<Domain.Program> programs = new();
+    private List<School> schools = new();
+    private List<Admission> admissions = new();
+    private List<Person> persons = new();
+    private List<Person> results = new();
+
+    BarChart<int> schoolChart;
+    BarChart<int> gpaChart;
+
+    int programId = 0;
+    int schoolId = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        schools = await schoolService.GetAllAsync();
+        programs = await programService.GetAllAsync();
+        admissions = await admissionService.GetAllAsync();
+        persons = await personService.GetAllAsync();
+    }
+
+    private string CheckSelection(int id)
+    {
+        if (id == 0)
+            return "School is not selected";
+        return null;
+    }
+
+
+    private void Clear()
+    {
+        schoolId = 0;
+        programId = 0;
+    }
+
+    private async Task Query()
+    {
+        List<int> personIds;
+        if (programId != 0)
+        {
+            personIds = admissions.Where(x => x.ProgramId == programId).Select(x => x.PersonId).ToList();
+
+        }
+        else
+        {
+            var programIds = programs.Where(x => x.SchoolId == schoolId).Select(x => x.Id).ToList();
+            personIds = admissions.Where(ad => programIds.Contains(ad.ProgramId)).Select(x => x.PersonId).ToList();
+        }
+        results = persons.FindAll(x => personIds.Contains(x.Id));
+        await DrawSchoolChartDataset(results);
+        await DrawGpaChartDataset(results);
+    }
+
+
+    private async Task DrawSchoolChartDataset(List<Person> persons)
+    {
+        await schoolChart.Clear();
+
+        var schooldata = persons.GroupBy(x => x.School).ToDictionary(x => x.Key, x => x.ToList().Count);
+        var dataset = new BarChartDataset<int>
+        {
+            Data = schooldata.Select(x => x.Value).ToList(),
+            BackgroundColor = GenerateRandomColors(persons.Count),
+            Type = "horizontalBar",
+        };
+
+        await schoolChart.AddLabelsDatasetsAndUpdate(schooldata.Keys.ToList(), dataset);
+    }
+
+    private async Task DrawGpaChartDataset(List<Person> persons)
+    {
+        await gpaChart.Clear();
+
+        Dictionary<string, int> dict = new Dictionary<string, int>();
+
+        foreach(var p in persons)
+        {
+            string key = Math.Round(p.Gpa, 1).ToString();
+            if(!dict.ContainsKey(key))
+            {
+                dict.Add(key, 1);
+            }
+            else
+            {
+                dict[key]++;
+            }
+        }
+
+        var ordered = dict.OrderBy(x => x.Key);
+        
+        var dataset = new BarChartDataset<int>
+        {
+            Data = ordered.Select(x => x.Value).ToList(),
+            BackgroundColor = GenerateRandomColors(persons.Count)
+        };
+
+        await gpaChart.AddLabelsDatasetsAndUpdate(ordered.Select(x => x.Key).ToList(), dataset);
+    }
+
+    private string GetChartOption()
+    {
+        AxisTicks ticks = new AxisTicks { BeginAtZero = true };
+        Axis countAxis = new Axis { Ticks = ticks };
+        var yAxes = new List<Axis>();
+        yAxes.Add(countAxis);
+
+        var xAxes = new List<Axis>();
+        xAxes.Add(countAxis);
+
+        Blazorise.Charts.ChartOptions chartOptions = new()
+        {
+            AspectRatio = 2,
+            Legend = new Legend() { Display = false },
+            Scales = new Scales { YAxes = yAxes, XAxes = xAxes}
+        };
+
+        return OptionToJson(chartOptions);
+    }
+
+    private string OptionToJson(Blazorise.Charts.ChartOptions options)
+    {
+        var jsonOptions = new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
+        string jsonString = JsonSerializer.Serialize(options, options.GetType(), jsonOptions);
+        return jsonString;
+    }
+
+    List<string> GenerateRandomColors(int count)
+    {
+        List<string> colors = new();
+        Random rand = new Random();
+        for (int i = 0; i < count; i++)
+        {
+            colors.Add(ChartColor.FromRgba((byte)rand.Next(0, 256), (byte)rand.Next(0, 256), (byte)rand.Next(0, 256), 0.5f));
+        }
+        return colors;
+    }
+
+
+    private async Task<IEnumerable<int>> SearchSchool(string value)
+    {
+        return await Task.Run(() =>
+        {
+            // if text is null or empty, show complete list
+            if (string.IsNullOrEmpty(value))
+                return schools.Select(x => x.Id);
+            return schools.Where(
+                x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase) ||
+                x.ShortName.Contains(value, StringComparison.InvariantCultureIgnoreCase)
+            ).Select(x => x.Id);
+        });
+
+    }
+
+    private string GetSchoolName(int schoolId)
+    {
+        var school = schools.FirstOrDefault(x => x.Id == schoolId);
+        if (school is null)
+        {
+            return "";
+        }
+        else
+        {
+            return school.Name;
+        }
+    }
+
+    private string GetProgramName(int id)
+    {
+        var program = programs.FirstOrDefault(x => x.Id == id);
+        if (program is null)
+        {
+            return "";
+        }
+        else
+        {
+            return $"({program.ShortName}){program.Name}";
+        }
+    }
+
+    private async Task<IEnumerable<int>> SearchProgram(string value)
+    {
+        return await Task.Run(() =>
+        {
+            // if text is null or empty, show complete list
+            if (string.IsNullOrEmpty(value))
+            {
+
+                return programs.Where(x => x.SchoolId == schoolId).Select(x => x.Id);
+
+            }
+            return programs.Where(
+                x => x.SchoolId == schoolId &&
+                (x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase) ||
+                x.ShortName.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+            ).Select(x => x.Id);
+        });
+    }
+
+    private string GetAdmissionAbbrev(int schoolId, int programId)
+    {
+        var school = schools.FirstOrDefault(x => x.Id == schoolId);
+        var program = programs.FirstOrDefault(x => x.Id == programId);
+        if (school != null && program != null)
+        {
+            return $"{school.ShortName}-{program.ShortName}";
+        }
+        else
+        {
+            return "UNKNOWN";
+        }
+    }
+
+}

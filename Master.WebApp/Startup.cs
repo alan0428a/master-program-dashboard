@@ -15,6 +15,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using MudBlazor.Services;
 using Master.WebApp.Services;
+using Blazorise;
+using Blazorise.Bootstrap;
 
 namespace Master.WebApp
 {
@@ -40,6 +42,8 @@ namespace Master.WebApp
             services.AddScoped<IProgramService, ProgramService>();
             services.AddScoped<IPersonService, PersonService>();
             services.AddScoped<IAdmissionService, AdmissionService>();
+            services.AddBlazorise()
+                .AddBootstrapProviders();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

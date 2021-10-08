@@ -18,7 +18,7 @@
         <MudTextField @bind-Value="program.Department" Label="Department" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
         <MudTextField @bind-Value="program.Url" Label="Url" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
         <br />
-        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="async _ => await SaveAsync()">Apply Change</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="async _ => await SaveAsync()" Disabled="true">Apply Change</MudButton>
     </MudCardContent>
 </MudCard>
 <br />
@@ -49,7 +49,7 @@
         <MudTd DataLabel="Url"><MudLink Href="@context.Url">@context.Url</MudLink></MudTd>
         <MudTd DataLabel="">
             <MudFab @onclick="@(()=>Edit(@context.Id))" Color="Color.Primary" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" IconSize="Size.Small" />
-            <MudFab @onclick="@(async ()=>await DeleteAsync(@context.Id))" Color="Color.Secondary" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" />
+            <MudFab @onclick="@(async ()=>await DeleteAsync(@context.Id))" Color="Color.Secondary" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" Disabled="true" />
         </MudTd>
     </RowTemplate>
 </MudTable>

@@ -17,7 +17,7 @@
         <MudTextField @bind-Value="school.State" Label="State" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
         <MudTextField @bind-Value="school.Ranking" Label="Ranking" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
         <br />
-        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="async _ => await SaveAsync()">Apply Change</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="async _ => await SaveAsync()" Disabled="true">Apply Change</MudButton>
     </MudCardContent>
 </MudCard>
 <br />
@@ -43,7 +43,7 @@
         <MudTd DataLabel="Ranking">@context.Ranking</MudTd>
         <MudTd DataLabel="">
             <MudFab @onclick="@(()=>Edit(@context.Id))" Color="Color.Primary" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" IconSize="Size.Small" />
-            <MudFab @onclick="@(async ()=>await DeleteAsync(@context.Id))" Color="Color.Secondary" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" />
+            <MudFab @onclick="@(async ()=>await DeleteAsync(@context.Id))" Color="Color.Secondary" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" Disabled="true"/>
         </MudTd>
     </RowTemplate>
 </MudTable>
